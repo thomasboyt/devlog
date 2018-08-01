@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+
+      canvas {
+        width: 320px;
+        height: 240px;
+        image-rendering: -moz-crisp-edges;    /* Firefox */
+        image-rendering: -webkit-crisp-edges; /* Webkit (Safari) */
+        image-rendering: pixelated;           /* Chrome */
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <script src="script.js"></script>
+    <script>
+      withCanvas(function(canvas, ctx) {
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <script src="script.js"></script>
+    <script>
+      withCanvas(function(canvas, ctx) {
+        var width = 80;
+        var height = 60;
+        var pixelRatio = window.devicePixelRatio || 1;
+
+        var scale = 4;
+
+        canvas.width = scale * width * pixelRatio;
+        canvas.height = scale * height * pixelRatio;
+
+        canvas.style.width = scale * width + 'px';
+        canvas.style.height = scale * height +'px';
+
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.imageSmoothingEnabled = false;
+
+        ctx.scale(scale * pixelRatio, scale * pixelRatio);
+      });
+    </script>
+  </body>
+</html>

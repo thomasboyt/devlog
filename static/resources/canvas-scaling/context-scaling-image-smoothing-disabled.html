@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <script src="script.js"></script>
+    <script>
+      withCanvas(function(canvas, ctx) {
+        canvas.width = 320;
+        canvas.height = 240;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.imageSmoothingEnabled = false;
+        ctx.scale(4, 4);
+      });
+    </script>
+  </body>
+</html>
