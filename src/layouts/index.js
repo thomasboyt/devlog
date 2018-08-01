@@ -1,6 +1,12 @@
 import React from 'react';
 import Link from 'gatsby-link';
 
+import 'prismjs/themes/prism.css';
+import '../styles/normalize.css';
+import '../styles/global.css';
+
+import styles from './layout.module.css';
+
 class Template extends React.Component {
   render() {
     const { location, children } = this.props;
@@ -19,7 +25,7 @@ class Template extends React.Component {
       );
     }
     return (
-      <div>
+      <div className={styles.container}>
         {header}
         {children()}
       </div>
