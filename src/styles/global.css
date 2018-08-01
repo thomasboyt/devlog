@@ -13,6 +13,10 @@ body, p, h1, h2, h3, h4 {
   line-height: 1.5em
 }
 
+h1 {
+  font-size: 1.75em;
+}
+
 a, a:visited, a:hover {
   color: black;
   text-decoration: underline;

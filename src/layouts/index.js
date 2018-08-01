@@ -9,25 +9,30 @@ import styles from './layout.module.css';
 
 class Template extends React.Component {
   render() {
-    const { location, children } = this.props;
-    let header;
-    if (location.pathname === '/') {
-      header = (
-        <h1>
-          <Link to={'/'}>devlog.disco.zone</Link>
-        </h1>
-      );
-    } else {
-      header = (
-        <h3>
-          <Link to={'/'}>devlog.disco.zone</Link>
-        </h3>
-      );
-    }
+    const { children } = this.props;
+
+    const header = (
+      <header className={styles.header}>
+        <Link to={'/'} style={{ fontWeight: 'bold' }}>
+          devlog
+        </Link>
+        <div style={{ float: 'right' }}>
+          <a href="https://disco.zone">disco.zone</a>
+        </div>
+      </header>
+    );
+
+    const footer = (
+      <footer className={styles.footer}>
+        (c) <a href="https://thomasboyt.com">Thomas Boyt</a>
+      </footer>
+    );
+
     return (
       <div className={styles.container}>
         {header}
         {children()}
+        {footer}
       </div>
     );
   }

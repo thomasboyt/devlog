@@ -3,3 +3,15 @@
   max-width: 700px;
   padding: 0 10px;
 }
+
+.header {
+  border-bottom: 1px #ccc solid;
+  padding: 1em 0;
+  margin-bottom: 1.5em;
+}
+
+.footer {
+  border-top: 1px #ccc solid;
+  padding: 1em 0;
+  text-align: center;
+}
