@@ -1,10 +1,11 @@
 ---
 layout:     post
-title:      Aggregated Social Media Feeds in Jam Buds
+title:      Aggregated social media feeds in Jam Buds
+summary:    Writing some complex SQL queries so no one has to get spammed with the next CRJ banger.
 categories: 'Jam Buds'
 ---
 
-I've been working on [Jam Buds](https://jambuds.club/), a social network for sharing music you like, on and off for the past few years. Jam Buds's main feature is a feed of new music your friends have posted. The core idea is that (eventually) your feed will act as a smart "playlist," which you can listen back to at your leisure, more easily than tracking down songs your friends have posted on Twitter or Facebook.
+I've been working on [Jam Buds](https://jambuds.club/), a social network for sharing music you like, on and off for the past few years. Jam Buds's main feature is a feed of new music your friends have posted. The core idea is that (eventually) your feed will act as a social "playlist," which you can listen back to at your leisure, more easily than tracking down songs your friends have posted on Twitter or Facebook.
 
 ![](feed_screenshot.png)
 
@@ -32,8 +33,13 @@ Now, to solve duplicate songs, we *aggregate* posts that are about the same song
 Doing this as a query is kind of tricky, but seems to work:
 
 ```sql
--- This is going over _all_ songs, but in practice filters down to songs
--- posted by the specific user's followed users.
+-- Note that this query, like the other examples in this post, are
+-- simplified to be easier to read.
+--
+-- In reality, these queries filter the results to only show songs that
+-- have been posted by either the current user or the current user's
+-- followed users.
+
 SELECT
   songs.*,
   MIN(posts.created_at) as earliest_posted,
@@ -66,7 +72,6 @@ The special case to solve these problems is that, rather than just getting the e
 To handle this, we use a neat Postgres function called `COALESCE()`. This function takes multiple values, and returns the first non-null value from left to right. Thus, our query becomes more complicated:
 
 ```sql
--- Again, this will include _all_ songs, for a simpler query.
 SELECT
   songs.*,
   COALESCE(
@@ -92,9 +97,122 @@ Now, I don't expect too much from the performance of this query - from little wh
 
 There might be better ways to write this out, but in practice, the query is already even more complex than is here (as a feed has to be filtered to a user's followed users, and a few extra fields are added), so I feel that this is an okay balance of query readability and performance.
 
+## Pagination
+
+One fun problem I discovered late in this implementation was _pagination_. Jam Buds has a UI much like Twitter, where when you reach the bottom of a page of posts, you can click a button and load the next page. To get the "next page" (older entries), you just needed to query posts earlier than the oldest item in the previous page:
+
+```sql
+SELECT songs.*, post_id
+FROM posts
+JOIN songs ON songs.id=posts.song_id
+WHERE posts.created_at < ?
+ORDER BY posts.created_at DESC
+LIMIT 20;
+```
+
+I ran into a snag implementing this in the new aggregated feed query, though. Given the query we wound up with in the last section, you'd think you could just add:
+
+```sql
+-- ...
+WHERE feed_timestamp < ?
+GROUP BY songs.id
+ORDER BY feed_timestamp DESC
+LIMIT 20;
+```
+
+However, if you try to do this, you'd run into a fun error from Postgres:
+
+```
+ERROR:  column "feed_timestamp" does not exist
+```
+
+This is because, according to [the Postgres documentation](https://www.postgresql.org/docs/current/sql-select.html#SQL-SELECT-LIST), you cannot use an output column's name in the `WHERE` or `HAVING` clauses of a query.
+
+Sadly, as far as I can tell, the only way to solve this without a large-scale query rewrite is to duplicate the query in the `WHERE` clause:
+
+```sql
+-- ...
+WHERE
+  COALESCE(
+    (
+      SELECT posts.created_at
+      FROM posts
+      WHERE user_id=?
+        AND song_id=songs.id
+    ),
+    MIN(posts.created_at)
+  ) < ?
+GROUP BY songs.id
+ORDER BY feed_timestamp DESC
+LIMIT 20;
+```
+
+One last note is that even _that_ query wouldn't work, and will result in another Postgres error:
+
+```
+ERROR:  aggregate functions are not allowed in WHERE
+```
+
+But it turns out the fix for that is as simple as using a `HAVING` clause instead. `HAVING` is literally just a `WHERE` clause that can handle grouping and aggregate functions, as [described by the docs](https://www.postgresql.org/docs/current/tutorial-agg.html). It goes after `GROUP BY` in the statement:
+
+```sql
+-- ...
+GROUP BY songs.id
+HAVING
+  COALESCE(
+    (
+      SELECT posts.created_at
+      FROM posts
+      WHERE user_id=?
+        AND song_id=songs.id
+    ),
+    MIN(posts.created_at)
+  ) < ?
+ORDER BY feed_timestamp DESC
+LIMIT 20;
+```
+
+This duplication makes the final query somewhat more unwieldy:
+
+```sql
+SELECT
+  songs.*,
+  COALESCE(
+    (
+      SELECT posts.created_at
+      FROM posts
+      WHERE user_id=?
+        AND song_id=songs.id
+    ),
+    MIN(posts.created_at)
+  ) as feed_timestamp,
+  array_agg(users.name) as user_names
+FROM songs
+JOIN posts ON songs.id=posts.song_id
+JOIN users ON users.id=posts.user_id
+GROUP BY songs.id
+HAVING
+  COALESCE(
+    (
+      SELECT posts.created_at
+      FROM posts
+      WHERE user_id=?
+        AND song_id=songs.id
+    ),
+    MIN(posts.created_at)
+  ) < ?
+ORDER BY feed_timestamp DESC
+LIMIT 20;
+```
+
+Of course, because I'm writing TypeScript and not raw SQL queries, it's fairly easily to just use the `COALESCE()` call as a string partial and interpolate it into multiple places in the query, but it still feels awkward. I suspect there is some join-wizardry-magic that you could use to avoid the duplication, but I feel like this works well enough for now.
+
 ## Follow-ups
 
-There are several follow-up tasks to consider here:
+There are a couple follow-up tasks to consider here:
 
 - **Caching.** As I said, I expect the performance of this to be pretty gnarly, and some sort of caching would be great. I started to write out the specifics of what this would look like, and it got very difficult to reason about fast, so I think I'm going to punt on it. The hard part is figuring out what *updates* look like in a cached world - it's basically a cache-busting problem, as most things tend to be.
+
 - **Time-boxed aggregation**. I think there should be some time period where songs *are* allowed to be duplicated in the feed - basically, after six months since the last time a song was posted, a new entry should be created. I believe Twitter does this (or has done this) with retweets, for example. This seems like a really hard query to write, though, and won't be an issue for Jam Buds until it's been running for a long time.
+
+I'm hopeful these naive SQL queries will carry me to at least having a few hundred active users on Jam Buds, and some basic caching will carry me to a few thousand, and.. well, if I somehow had more than that, that's a good problem to have, if a harder engineering one.
