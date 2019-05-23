@@ -22,7 +22,7 @@ To solve this, *Jam Buds prevents the same song from appearing more than once in
 
 ## Implementation
 
-When a user posts a song to Jam Buds, the DB creates a row in the `posts` table mapping their `user_id` to the `song_id`. A song has its own normalized entry in a `songs` table. Originally, the feed was simply iterating over all of the *posts* the current user's followed users had made.
+When a user posts a song to Jam Buds, we create a row in the `posts` table mapping their `user_id` to the `song_id`. A song has its own normalized entry in a `songs` table. Originally, the feed was simply iterating over all of the *posts* the current user's followed users had made.
 
 Now, to solve duplicate songs, we *aggregate* posts that are about the same song in a user's feed. We handle this the same way Twitter handles retweets:
 
