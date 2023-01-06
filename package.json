@@ -7,7 +7,7 @@
     "url": "https://github.com/gatsbyjs/gatsby-starter-blog/issues"
   },
   "dependencies": {
-    "gatsby": "^1.8.12",
+    "gatsby": "^5.3.3",
     "gatsby-link": "^1.6.8",
     "gatsby-plugin-manifest": "^1.0.4",
     "gatsby-plugin-preact": "^1.0.3",
@@ -18,7 +18,7 @@
     "gatsby-remark-prismjs": "^1.2.1",
     "gatsby-remark-responsive-iframe": "^1.4.3",
     "gatsby-remark-smartypants": "^1.4.3",
-    "gatsby-source-filesystem": "^1.4.3",
+    "gatsby-source-filesystem": "^5.3.1",
     "gatsby-transformer-remark": "^1.7.1",
     "gatsby-transformer-sharp": "^1.6.1",
     "lodash": "^4.17.11"
